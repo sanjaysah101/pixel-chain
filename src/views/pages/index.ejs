@@ -1,0 +1,124 @@
+<div class="max-w-2xl mx-auto">
+  <div class="bg-white shadow-lg rounded-lg p-6">
+    <h1 class="text-2xl font-bold mb-6">Convert HEIC to PNG</h1>
+
+    <div class="space-y-4">
+      <div
+        id="dropzone"
+        class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
+      >
+        <p class="text-gray-600">Drag and drop your HEIC file here</p>
+        <p class="text-sm text-gray-500 mt-2">or</p>
+        <button
+          type="button"
+          id="selectFile"
+          class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Select File
+        </button>
+        <input type="file" id="fileInput" class="hidden" accept=".heic,.HEIC" />
+      </div>
+
+      <div id="fileInfo" class="hidden">
+        <p class="text-sm text-gray-600">
+          Selected file: <span id="fileName"></span>
+        </p>
+        <button
+          type="button"
+          id="uploadButton"
+          class="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+        >
+          Upload and Convert
+        </button>
+      </div>
+
+      <div id="progress" class="hidden">
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div
+            id="progressBar"
+            class="bg-blue-600 h-2.5 rounded-full"
+            style="width: 0%"
+          ></div>
+        </div>
+        <p id="progressText" class="text-sm text-gray-600 mt-1">0%</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const selectFile = document.getElementById('selectFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const uploadButton = document.getElementById('uploadButton');
+    const progress = document.getElementById('progress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    selectFile.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('border-blue-500');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('border-blue-500');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('border-blue-500');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      handleFile(e.target.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.heic')) {
+        alert('Please select a HEIC file');
+        return;
+      }
+
+      fileName.textContent = file.name;
+      fileInfo.classList.remove('hidden');
+
+      uploadButton.onclick = () => uploadFile(file);
+    }
+
+    async function uploadFile(file) {
+      progress.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'File-Name': file.name,
+          },
+          body: file,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          window.location.href = `/result?url=${encodeURIComponent(result.url)}&message=Conversion successful!`;
+        } else {
+          console.log({ result });
+          throw new Error(result.message || 'Upload failed');
+        }
+      } catch (error) {
+        alert('Error: ' + error.message);
+        progress.classList.add('hidden');
+      }
+    }
+  });
+</script>
