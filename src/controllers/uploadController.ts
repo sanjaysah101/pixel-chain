@@ -37,7 +37,7 @@ export const uploadFile = async (req: Request, res: Response) => {
       try {
         const compressed = await convertHEICtoPNG(
           uploadedFilePath,
-          pngOutputPath,
+          pngOutputPath
         );
         if (!compressed) {
           return res.status(500).json({
@@ -52,10 +52,19 @@ export const uploadFile = async (req: Request, res: Response) => {
 
         const clientInstance = await initStorageClient();
 
-        const result: FileUri = await clientInstance.store(
-          BigInt(config.env.CERE_BUCKET_ID),
-          image,
-        );
+        if (!clientInstance) {
+          throw new Error('Storage client not initialized');
+        }
+
+        const bucketId = BigInt(config.env.CERE_BUCKET_ID);
+
+        try {
+          await clientInstance.getBucket(bucketId);
+        } catch (error) {
+          throw new Error(`Bucket access denied: ${(error as Error).message}`);
+        }
+
+        const result = await clientInstance.store(bucketId, image);
 
         await fs.rm(uploadedFilePath);
         await fs.rm(pngOutputPath);
@@ -69,9 +78,10 @@ export const uploadFile = async (req: Request, res: Response) => {
           url: `https://cdn.dragon.cere.network/${result.bucketId}/${result.cid}`,
         });
       } catch (e) {
-        // console.log({ e });
-        return res.status(500).json({
-          error: e instanceof Error ? e.message : 'Unknown error occurred',
+        console.error('Storage error:', e);
+        return res.status(403).json({
+          error: (e as Error).message || 'Storage permission denied',
+          details: 'Please verify your bucket ID and wallet credentials',
         });
       }
     });

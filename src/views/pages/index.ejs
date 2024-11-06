@@ -1,4 +1,4 @@
-<div class="max-w-2xl mx-auto">
+<div class="max-w-xl mx-auto">
   <div class="bg-white shadow-lg rounded-lg p-6">
     <h1 class="text-2xl font-bold mb-6">Convert HEIC to PNG</h1>
 
@@ -42,6 +42,19 @@
         </div>
         <p id="progressText" class="text-sm text-gray-600 mt-1">0%</p>
       </div>
+
+      <div id="preview" class="hidden mt-4">
+        <div id="previewLoading" class="flex justify-center p-4">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
+          ></div>
+        </div>
+        <img
+          id="previewImage"
+          class="max-w-md mx-auto rounded-lg shadow-lg hidden"
+          alt="Preview"
+        />
+      </div>
     </div>
   </div>
 </div>
@@ -57,6 +70,9 @@
     const progress = document.getElementById('progress');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
+    const preview = document.getElementById('preview');
+    const previewImage = document.getElementById('previewImage');
+    const previewLoading = document.getElementById('previewLoading');
 
     selectFile.addEventListener('click', () => {
       fileInput.click();
@@ -81,8 +97,10 @@
       handleFile(e.target.files[0]);
     });
 
-    function handleFile(file) {
+    async function handleFile(file) {
       if (!file) return;
+
+      // Validate file type
       if (!file.name.toLowerCase().endsWith('.heic')) {
         alert('Please select a HEIC file');
         return;
@@ -90,6 +108,42 @@
 
       fileName.textContent = file.name;
       fileInfo.classList.remove('hidden');
+
+      // Show preview section and loading spinner
+      preview.classList.remove('hidden');
+      previewLoading.classList.remove('hidden');
+      previewImage.classList.add('hidden');
+
+      try {
+        // Create FormData and append file
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Send for preview generation
+        const response = await fetch('/api/preview', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`Preview failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+          throw new Error(data.error);
+        }
+
+        // Hide loading spinner and show preview
+        previewLoading.classList.add('hidden');
+        previewImage.classList.remove('hidden');
+        previewImage.src = data.url;
+      } catch (error) {
+        console.error('Preview error:', error);
+        preview.classList.add('hidden');
+        alert('Failed to generate preview: ' + error.message);
+      }
 
       uploadButton.onclick = () => uploadFile(file);
     }
@@ -110,7 +164,9 @@
         const result = await response.json();
 
         if (response.ok) {
-          window.location.href = `/result?url=${encodeURIComponent(result.url)}&message=Conversion successful!`;
+          window.location.href = `/result?url=${encodeURIComponent(
+            result.url
+          )}&message=Conversion successful!`;
         } else {
           console.log({ result });
           throw new Error(result.message || 'Upload failed');
@@ -120,5 +176,11 @@
         progress.classList.add('hidden');
       }
     }
+
+    // Clean up preview when starting upload
+    uploadButton.addEventListener('click', () => {
+      preview.classList.add('hidden');
+      previewImage.src = '';
+    });
   });
 </script>

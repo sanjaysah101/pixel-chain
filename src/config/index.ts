@@ -13,5 +13,6 @@ export const config = {
     CERE_BUCKET_ID: process.env.CERE_BUCKET_ID || '',
     CERE_CLUSTER_ID: process.env.CERE_CLUSTER_ID || '',
     CERE_FOLDER: process.env.CERE_FOLDER || '',
+    WALLET_CREDS_PASSWORD: process.env.WALLET_CREDS_PASSWORD || '',
   },
 };

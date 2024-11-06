@@ -24,6 +24,9 @@ app.use(compression());
 app.use(express.raw({ type: 'application/octet-stream', limit: '5mb' }));
 app.use(express.static('public'));
 
+// Make compressed directory accessible
+app.use('/compressed', express.static(config.compressedDir));
+
 // Setup upload folders
 setupFolders();
 
